@@ -1,0 +1,7 @@
+node_modules
+data
+.git
+.codebuddy
+cloudfunctions
+*.md
+.DS_Store

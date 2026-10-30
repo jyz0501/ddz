@@ -1,0 +1,18 @@
+services:
+  ddz:
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+    image: ddz-score:latest
+    container_name: ddz-score
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: "3000"
+      DATA_DIR: /app/data
+    volumes:
+      - ddz-data:/app/data
+
+volumes:
+  ddz-data:
