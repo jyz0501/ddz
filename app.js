@@ -1022,14 +1022,14 @@
       '<div class="players">' +
       r.players.map(function (p, i) { return playerCard(p, i, lordId); }).join('') + '</div>' +
 
-      '<div class="section-title">记分记录 <span class="sub" id="hist-undo">' + undoBtnHtml(r) + '</span></div>' +
-      '<div id="hist-box">' + historyHtml() + '</div>' +
-
       '<div class="card settings" style="margin-top:16px">' +
-      '<details><summary>更多设置</summary><div class="s-body">' +
+      '<details><summary>高级功能</summary><div class="s-body">' +
       '<div class="row"><button class="btn btn-sm grow btn-danger" data-act="reset">积分清零</button>' +
       '<button class="btn btn-sm grow btn-danger" data-act="dismiss">解散房间</button></div>' +
       '</div></details></div>' +
+
+      '<div class="section-title">记分记录 <span class="sub" id="hist-undo">' + undoBtnHtml(r) + '</span></div>' +
+      '<div id="hist-box">' + historyHtml() + '</div>' +
 
       '<div class="dock"><div class="dock-inner">' +
       '<button class="btn btn-primary grow" data-act="settle">记分</button>' +
