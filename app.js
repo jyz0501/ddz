@@ -136,6 +136,36 @@
     setTimeout(function () { el.remove(); }, 1900);
   }
 
+  /* ---- 结算提示音：用 WebAudio 合成，不依赖音频文件 ---- */
+  var audioCtx = null;
+  function playSettleSound() {
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      if (!audioCtx) audioCtx = new AC();
+      if (audioCtx.state === 'suspended' && audioCtx.resume) audioCtx.resume();
+
+      var t0 = audioCtx.currentTime;
+      var mkGain = audioCtx.createGain || audioCtx.createGainNode;
+      // C5 → E5 → G5 短促上行，最后一音稍长作为收尾
+      [523.25, 659.25, 783.99].forEach(function (f, i) {
+        var osc = audioCtx.createOscillator();
+        var gain = mkGain.call(audioCtx);
+        var start = t0 + i * 0.09;
+        var dur = i === 2 ? 0.42 : 0.16;
+        osc.type = 'sine';
+        osc.frequency.value = f;
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.linearRampToValueAtTime(0.22, start + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(start);
+        osc.stop(start + dur + 0.02);
+      });
+    } catch (e) { /* 浏览器不支持就静默 */ }
+  }
+
   function copyText(text, okMsg) {
     var done = function () { toast(okMsg || '已复制'); };
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -655,6 +685,7 @@
       closeModal();
       api(payload).then(function (d) {
         applyRoomChange(d.room, d.recordId);
+        playSettleSound();
         toast('记分完成');
       }).catch(function (e) { fail(e, '记分'); render(); });
       return;
@@ -700,6 +731,7 @@
       state.room.records.unshift(rec);
       closeModal();
     }, rec.id);
+    playSettleSound();
     toast('记分完成');
   }
 
