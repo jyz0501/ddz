@@ -20,7 +20,14 @@
     '红楼人物': ['贾宝玉', '林黛玉', '薛宝钗', '王熙凤', '贾母', '贾政', '王夫人', '贾探春', '贾迎春',
       '贾惜春', '史湘云', '妙玉', '李纨', '贾元春', '秦可卿', '尤二姐', '尤三姐', '鸳鸯',
       '袭人', '晴雯', '平儿', '香菱', '薛蟠', '贾环', '贾琏', '刘姥姥', '紫鹃', '司棋',
-      '金钏', '芳官', '小红', '邢岫烟', '薛宝琴', '贾蓉', '柳湘莲', '蒋玉菡']
+      '金钏', '芳官', '小红', '邢岫烟', '薛宝琴', '贾蓉', '柳湘莲', '蒋玉菡'],
+    '金庸群侠': ['萧峰', '段誉', '虚竹', '王语嫣', '阿朱', '阿紫', '慕容复', '鸠摩智', '丁春秋', '游坦之',
+      '木婉清', '天山童姥', '杨过', '小龙女', '李莫愁', '郭芙', '郭襄', '耶律齐', '公孙止', '金轮法王',
+      '霍都', '陆无双', '程英', '裘千尺', '张无忌', '赵敏', '周芷若', '小昭', '谢逊', '张翠山',
+      '殷素素', '张三丰', '宋青书', '灭绝师太', '杨逍', '韦一笑', '令狐冲', '任盈盈', '岳不群', '宁中则',
+      '岳灵珊', '林平之', '田伯光', '仪琳', '左冷禅', '任我行', '向问天', '东方不败', '韦小宝', '陈近南',
+      '海大富', '建宁公主', '双儿', '阿珂', '陈家洛', '霍青桐', '香香公主', '袁承志', '温青青', '胡斐',
+      '苗人凤', '程灵素', '狄云', '水笙']
   };
   var ORIGINS = Object.keys(HEROES);
 
@@ -865,7 +872,7 @@
       '<div class="logo">🃏</div>' +
       '<h1>斗地主记分器</h1>' +
       '<p>房间码组队 · 随机人物 · 一键记分</p>' +
-      '<div class="hero-cards"><span>三国</span><span>射雕</span><span>水浒</span><span>红楼</span></div>' +
+      '<div class="hero-cards"><span>三国</span><span>射雕</span><span>水浒</span><span>红楼</span><span>金庸</span></div>' +
       '</div>' +
 
       '<div class="card">' +
@@ -894,7 +901,7 @@
       '<div class="section-title">玩法说明</div>' +
       '<div class="card tips">' +
       '1. 房主创建房间，得到 <b>4 位房间码</b>；<br/>' +
-      '2. 每人点空位入座，系统从三国 / 射雕 / 水浒 / 红楼中<b>随机分配一个人物名</b>，不满意可「换人」；<br/>' +
+      '2. 每人点空位入座，系统从三国 / 射雕 / 水浒 / 红楼 / 金庸中<b>随机分配一个人物名</b>，不满意可「换人」；<br/>' +
       '3. 每局结束点<b>记分</b>：选地主与胜负，底分 × 倍数自动结算；也可以<b>自由转账</b>，一人给另外两人各付分；<br/>' +
       '4. 下方实时保留<b>积分流水</b>，记错了可以撤销上一局。<br/>' +
       '<span style="opacity:.75">注：' + (cloudOn()
@@ -963,6 +970,14 @@
     playScoreAnim(before);
   }
 
+  // 取元素的第一个文本子节点（.p-name / .avatar 里还混着 span 标签）
+  function firstTextNode(el) {
+    for (var i = 0; i < el.childNodes.length; i++) {
+      if (el.childNodes[i].nodeType === 3) return el.childNodes[i];
+    }
+    return null;
+  }
+
   function patchPlayerCard(card, p, lordId) {
     var rank = rankMap();
     var rk = rank[p.id];
@@ -982,7 +997,22 @@
     var tag = card.querySelector('.tag-lord');
     var isLord = lordId && p.id === lordId;
     card.classList.toggle('lord', !!isLord);
+
+    // 换人后同步姓名/出处/头像首字（保留「地主」「我」等标签节点）
+    if (nameEl) {
+      var nameNode = firstTextNode(nameEl);
+      if (nameNode) nameNode.nodeValue = p.name;
+      else nameEl.insertBefore(document.createTextNode(p.name), nameEl.firstChild);
+    }
+    var originEl = card.querySelector('.p-origin');
+    if (originEl) originEl.textContent = p.origin;
+
     var av = card.querySelector('.avatar');
+    if (av) {
+      var avNode = firstTextNode(av);
+      if (avNode) avNode.nodeValue = p.name.slice(0, 1);
+      else av.insertBefore(document.createTextNode(p.name.slice(0, 1)), av.firstChild);
+    }
     var crown = av ? av.querySelector('.crown') : null;
     if (isLord && !crown && av) {
       crown = document.createElement('span');
