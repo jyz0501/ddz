@@ -55,6 +55,19 @@
     safeSet(KEY_MY_ROOMS, JSON.stringify(myRooms().filter(function (c) { return c !== code; })));
   }
 
+  // 云端房间已过期/被解散：清掉本机残留的缓存和入口，避免首页反复点进「不存在的房间」
+  function forgetRoomLocal(code) {
+    if (!code) return;
+    safeDel(KEY_ROOM(code));
+    clearStarted(code);
+    clearMe(code);
+    removeMyRoom(code);
+    if (state.lastRoomCode === code) {
+      safeDel(KEY_LAST);
+      state.lastRoomCode = null;
+    }
+  }
+
   // 座位身份优先取当前标签页（sessionStorage），这样同一浏览器开多个标签也能各占一座
   function getMe(code) {
     var s = null;
@@ -374,7 +387,14 @@
         if (canPatch() && playerIds() === idsBefore) patchRoom(before);
         else render();
       }
-    }).catch(function () { /* 轮询失败静默 */ });
+    }).catch(function (e) {
+      // 网络失败静默；房间确实被清理/解散时退回首页并清掉本机入口
+      if (e.message !== '房间不存在') return;
+      var gone = state.code;
+      forgetRoomLocal(gone);
+      exitRoom();
+      toast('房间已过期或被解散');
+    });
   }
 
   function enterRoom(room, meId) {
@@ -468,7 +488,14 @@
         }
         return cloudJoin(code, room);
       }).catch(function (e) {
-        toast(e.message === '房间不存在' ? '房间不存在，请确认房间码' : ('加入失败：' + e.message));
+        if (e.message === '房间不存在') {
+          // 24 小时无活动会被服务端清理，本机入口同步删掉，不再反复提示
+          forgetRoomLocal(code);
+          if (state.view === 'home') render();
+          toast('房间已过期或被解散，已从列表移除');
+          return;
+        }
+        toast('加入失败：' + e.message);
       });
       return;
     }
@@ -865,6 +892,24 @@
     }).join('') + '</div>';
   }
 
+  // 首页校验本机记录的房间是否还在（云端 24 小时无活动会清理），失效的自动移除
+  var homeRoomsChecked = false;
+  function pruneStaleRooms() {
+    if (!cloudOn() || homeRoomsChecked) return;
+    var codes = [];
+    if (state.lastRoomCode) codes.push(state.lastRoomCode);
+    myRooms().forEach(function (c) { if (codes.indexOf(c) < 0) codes.push(c); });
+    if (!codes.length) return;
+    homeRoomsChecked = true;
+    codes.forEach(function (c) {
+      api({ action: 'get', code: c }).catch(function (e) {
+        if (e.message !== '房间不存在') return;
+        forgetRoomLocal(c);
+        if (state.view === 'home') render();
+      });
+    });
+  }
+
   function renderHome() {
     var last = state.lastRoomCode ? loadRoom(state.lastRoomCode) : null;
     appEl.innerHTML =
@@ -908,6 +953,8 @@
         ? '已连接云端，不同设备输入同一房间码即可实时同桌记分（每 2.5 秒自动同步）。'
         : '数据保存在本机浏览器，同一浏览器多标签页实时同步。') + '</span>' +
       '</div>';
+
+    pruneStaleRooms();
   }
 
   // 首页「我的房间」：本机建过/加入过的房间，点一下重新进入
